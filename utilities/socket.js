@@ -1,4 +1,6 @@
 const { Server } = require('socket.io');
+const messageModel = require('../api/models/message');
+const { sendNotification } = require('../api/Services/messageService');
 
 const initilizaSocket = (server) => {
     const io = new Server(server, {
@@ -16,10 +18,21 @@ const initilizaSocket = (server) => {
         logger.info(`User connected: ${socket.id}`);
         socket.emit('welcome', 'Welcome to the server! keyur');
 
-        socket.on('joinChat', (data) => {
-            console.log(data);
+        socket.on('joinChat', ({ sender, receiver }) => {
+            socket.join([sender, receiver].sort().join('_'));
         });
-        socket.on('sendMessage', () => { });
+        socket.on('sendMessage', async ({ sender, receiver, content }) => {
+            const message = new messageModel({ sender, receiver, content })
+            await message.save();
+
+            await sendNotification(receiver, {
+                title: 'New Message',
+                message: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+                icon: '/icon-192x192.png',
+                url: `/chat/${sender}`
+            });
+            io.to([sender, receiver].sort().join('_')).emit('receiveMessage', { sender, content });
+        });
 
         socket.on('disconnect', (reason) => {
             logger.info(`User disconnected: ${socket.id}, Reason: ${reason}`);

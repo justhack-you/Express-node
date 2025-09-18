@@ -18,11 +18,11 @@ router.get('/', auth, Constroller.userController.getAllUser)
 router.get('/:id/status', auth, Constroller.userController.updateUserStatus)
 router.get('/list/for/assignment', auth, Constroller.userController.assignmentList)
 
-
 // message
 router.post('/message', auth, func.validateRequest(schemas.messageSchema.sendMessage), Constroller.messageController.sendMessage)
 router.get('/message/:id', auth, Constroller.messageController.getMessage)
-router.get('/user/feed', auth, Constroller.messageController.getAllUsers)
+router.get('/user/feed/:id', auth, Constroller.messageController.getAllUsers)
 // router.get('/message/conversation/:id', auth, Constroller.messageController.getConversation)
+router.post('/subscribe', auth, Constroller.messageController.userSubscription)
 
 module.exports = router;

@@ -4,7 +4,8 @@ const messageService = require('../Services/messageService');
 module.exports = {
     sendMessage,
     getMessage,
-    getAllUsers
+    getAllUsers,
+    userSubscription
 }
 
 
@@ -40,11 +41,24 @@ async function getAllUsers(req, res) {
     try {
         logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_CONTROLLER} getAllUsers()`)
 
-        const response = await messageService.getAllUsers()
+        const response = await messageService.getAllUsers(req.params.id)
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} getAllUsers() ${func.msgCons.WITH_SUCCESS}`)
         res.status(200).json(response);
     } catch (error) {
         logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} getAllUsers() ${func.msgCons.WITH_ERROR}`)
+        res.status(500).json(error);
+    }
+}
+
+async function userSubscription(req, res) {
+    try {
+        logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_CONTROLLER} userSubscription()`)
+
+        const response = await messageService.userSubscription(req.body)
+        logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} userSubscription() ${func.msgCons.WITH_SUCCESS}`)
+        res.status(200).json(response);
+    } catch (error) {
+        logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} userSubscription() ${func.msgCons.WITH_ERROR}`)
         res.status(500).json(error);
     }
 }

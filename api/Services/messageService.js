@@ -2,11 +2,15 @@ const { default: mongoose } = require('mongoose');
 const func = require('../../utilities/utility-functions');
 const messageModel = require('../models/message');
 const userModel = require('../models/user');
+const Subscription = require('../models/Subscription')
+const webpush = require('web-push');
 
 module.exports = {
     sendMessage,
     getMessage,
-    getAllUsers
+    getAllUsers,
+    userSubscription,
+    sendNotification
 }
 
 async function sendMessage(reqUser, reqBody) {
@@ -26,7 +30,7 @@ async function sendMessage(reqUser, reqBody) {
         return { message: 'Message sent successfully', message }
     } catch (error) {
         logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} sendMessage() ${func.msgCons.WITH_ERROR} => `, error)
-        res.status(500).json(error);
+        throw error;
     }
 }
 
@@ -55,19 +59,84 @@ async function getMessage(reqParams, user) {
         return messageArray;
     } catch (error) {
         logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} getMessage() ${func.msgCons.WITH_ERROR} => `, error)
-        res.status(500).json(error);
+        throw error;
     }
 }
 
-async function getAllUsers() {
+async function getAllUsers(reqUserId) {
     try {
         logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_SERVICE} getAllUsers()`)
 
-        const users = await userModel.find({}).select('username email');
+        const users = await userModel.aggregate([
+            {
+                $addFields: {
+                    isTargetUser: { $eq: ["$username", reqUserId] }
+                }
+            },
+            {
+                $sort: {
+                    isTargetUser: -1,
+                    username: 1
+                }
+            },
+            {
+                $project: {
+                    username: 1,
+                    email: 1,
+                    _id: 1
+                }
+            },
+            { $unset: "isTargetUser" }
+        ]);
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} getAllUsers() ${func.msgCons.WITH_SUCCESS}`)
         return users;
     } catch (error) {
         logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} getAllUsers() ${func.msgCons.WITH_ERROR} => `, error)
-        res.status(500).json(error);
+        throw error;
     }
 }
+
+async function userSubscription(reqBody) {
+    try {
+        const { subscription, userId } = reqBody;
+        logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_SERVICE} userSubscription()`)
+
+        await Subscription.findOneAndUpdate(
+            { userId },
+            { subscription },
+            { upsert: true }
+        );
+
+        logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} userSubscription() ${func.msgCons.WITH_SUCCESS}`)
+        return { message: 'Subscription saved' };
+    } catch (error) {
+        logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} userSubscription() ${func.msgCons.WITH_ERROR}`)
+        throw { error: error.message };
+    }
+}
+
+webpush.setVapidDetails(
+    'mailto:your-email@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+);
+
+async function sendNotification(userId, payload) {
+    try {
+        const subscriptionDoc = await Subscription.findOne({ userId });
+
+        if (!subscriptionDoc) {
+            console.log('No subscription found for user:', userId);
+            return;
+        }
+
+        await webpush.sendNotification(subscriptionDoc.subscription, JSON.stringify(payload));
+        console.log('Notification sent successfully');
+    } catch (error) {
+        console.error('Error sending notification:', error);
+
+        if (error.statusCode === 410) {
+            await Subscription.findOneAndDelete({ userId });
+        }
+    }
+};
