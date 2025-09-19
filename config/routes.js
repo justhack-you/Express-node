@@ -8,6 +8,7 @@ const func = require('../config/utility-functions');
 // task management
 router.post('/register', func.validateRequest(schemas.userSchema.userRegistrationSchema), Constroller.userController.register)
 router.post('/login', func.validateRequest(schemas.userSchema.userLoginSchema), Constroller.userController.login)
+router.get('/user/detail/:id', auth, Constroller.userController.fetchUserById)
 
 router.put('/profile', Constroller.userController.updateProfile)
 router.post('/tasks', auth, Constroller.userController.createTask)

@@ -74,6 +74,38 @@ async function getAllUsers(reqUserId) {
                 }
             },
             {
+                $lookup: {
+                    from: "messages",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$sender", "$$userId"] },
+                                        { $eq: ["$isRead", false] }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            $count: "unreadCount"
+                        }
+                    ],
+                    as: "unreadMessages"
+                }
+            },
+            {
+                $addFields: {
+                    unreadCount: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$unreadMessages.unreadCount", 0] },
+                            0
+                        ]
+                    }
+                }
+            },
+            {
                 $sort: {
                     isTargetUser: -1,
                     username: 1
@@ -83,10 +115,11 @@ async function getAllUsers(reqUserId) {
                 $project: {
                     username: 1,
                     email: 1,
-                    _id: 1
+                    _id: 1,
+                    unreadCount: 1
                 }
             },
-            { $unset: "isTargetUser" }
+            { $unset: ["isTargetUser", "unreadMessages"] }
         ]);
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} getAllUsers() ${func.msgCons.WITH_SUCCESS}`)
         return users;

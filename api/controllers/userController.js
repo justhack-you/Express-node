@@ -11,7 +11,8 @@ module.exports = {
     statisticsTask,
     getAllUser,
     updateUserStatus,
-    assignmentList
+    assignmentList,
+    fetchUserById
 }
 
 async function register(req, res) {
@@ -36,7 +37,7 @@ async function login(req, res) {
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} login() ${func.msgCons.WITH_SUCCESS}`)
         const token = (response?.token) ?? null;
         delete response.token ?? null;
-        
+
         res.set('Access-Control-Expose-Headers', 'token');
         res.status(200).header('token', token).json(response);
     } catch (error) {
@@ -148,6 +149,20 @@ async function assignmentList(req, res) {
         logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_CONTROLLER} assignmentList()`)
 
         const response = await userService.assignmentList(req.user)
+
+        logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} assignmentList() ${func.msgCons.WITH_SUCCESS}`)
+        res.status(200).json(response);
+    } catch (error) {
+        logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} assignmentList() ${func.msgCons.WITH_ERROR}`)
+        res.status(500).json(error);
+    }
+}
+
+async function fetchUserById(req, res) {
+    try {
+        logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_CONTROLLER} assignmentList()`)
+
+        const response = await userService.fetchUserById(req.params.id)
 
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_CONTROLLER} assignmentList() ${func.msgCons.WITH_SUCCESS}`)
         res.status(200).json(response);

@@ -1,4 +1,4 @@
-
+const { default: mongoose } = require('mongoose');
 const func = require('../../utilities/utility-functions');
 const User = require('../models/user');
 const Task = require('../models/task');
@@ -13,7 +13,8 @@ module.exports = {
     statisticsTask,
     getAllUser,
     updateUserStatus,
-    assignmentList
+    assignmentList,
+    fetchUserById
 }
 
 
@@ -317,6 +318,29 @@ async function assignmentList() {
         return users
     } catch (error) {
         logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} assignmentList() ${func.msgCons.WITH_ERROR} =>`, error);
+        throw { message: 'Error fetching assignment list' };
+    }
+}
+
+async function fetchUserById(id) {
+    try {
+        logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_SERVICE} fetchUserById()`);
+        let user = await User.aggregate([{
+            $match: { _id: new mongoose.Types.ObjectId(id) }
+        }])
+        user = user[0]
+        if (!user) {
+            return { code: 'FETCH_USER_DETAILS_204', message: 'user data not found...' }
+        }
+
+        logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} fetchUserById() ${func.msgCons.WITH_SUCCESS}`);
+        return {
+            code: 'FETCH_USER_DETAILS_200', message: 'fetch login user details', user: {
+                id: user._id, username: user.username, email: user.email, role: user.role, lastLogin: user.lastLogin, avatar: user.profile.avatar
+            }
+        }
+    } catch (error) {
+        logger.error(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} fetchUserById() ${func.msgCons.WITH_ERROR} =>`, error);
         throw { message: 'Error fetching assignment list' };
     }
 }

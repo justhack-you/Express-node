@@ -28,7 +28,7 @@ const initilizaSocket = (server) => {
             await sendNotification(receiver, {
                 title: 'New Message',
                 message: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-                icon: '/icon-192x192.png',
+                icon: '../assets/whatsapp.png',
                 url: `/chat/${sender}`
             });
             io.to([sender, receiver].sort().join('_')).emit('receiveMessage', { sender, content });
