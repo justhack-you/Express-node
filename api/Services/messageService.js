@@ -66,61 +66,56 @@ async function getMessage(reqParams, user) {
 async function getAllUsers(reqUserId) {
     try {
         logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_SERVICE} getAllUsers()`)
-
         const users = await userModel.aggregate([
             {
-                $addFields: {
-                    isTargetUser: { $eq: ["$username", reqUserId] }
+                $match: {
+                    _id: { $ne: new mongoose.Types.ObjectId(reqUserId) }
                 }
             },
             {
                 $lookup: {
                     from: "messages",
-                    let: { userId: "$_id" },
+                    let: { otherUserId: "$_id" },
                     pipeline: [
                         {
                             $match: {
                                 $expr: {
                                     $and: [
-                                        { $eq: ["$sender", "$$userId"] },
-                                        { $eq: ["$isRead", false] }
+                                        { $eq: ["$sender", "$$otherUserId"] }, // Only messages RECEIVED BY current user
+                                        { $eq: ["$receiver", new mongoose.Types.ObjectId(reqUserId)] }
                                     ]
-                                }
+                                },
+                                isRead: false
                             }
                         },
-                        {
-                            $count: "unreadCount"
-                        }
+                        { $sort: { createdAt: -1 } }
                     ],
                     as: "unreadMessages"
                 }
             },
             {
-                $addFields: {
-                    unreadCount: {
+                $project: {
+                    _id: 1,
+                    username: 1,
+                    unreadCount: { $size: "$unreadMessages" },
+                    lastMessage: {
                         $ifNull: [
-                            { $arrayElemAt: ["$unreadMessages.unreadCount", 0] },
-                            0
+                            { $arrayElemAt: ["$unreadMessages.content", 0] },
+                            null
+                        ]
+                    },
+                    lastMessageTime: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$unreadMessages.createdAt", 0] },
+                            null
                         ]
                     }
                 }
             },
             {
-                $sort: {
-                    isTargetUser: -1,
-                    username: 1
-                }
-            },
-            {
-                $project: {
-                    username: 1,
-                    email: 1,
-                    _id: 1,
-                    unreadCount: 1
-                }
-            },
-            { $unset: ["isTargetUser", "unreadMessages"] }
-        ]);
+                $sort: { unreadCount: -1, lastMessageTime: -1 }
+            }
+        ])
         logger.info(`${func.msgCons.LOG_EXIT} ${func.msgCons.LOG_SERVICE} getAllUsers() ${func.msgCons.WITH_SUCCESS}`)
         return users;
     } catch (error) {

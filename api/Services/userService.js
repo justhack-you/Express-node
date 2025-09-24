@@ -22,7 +22,6 @@ async function register(body) {
     try {
         logger.info(`${func.msgCons.LOG_ENTER} ${func.msgCons.LOG_SERVICE} register()`)
 
-        console.log(body);
         const { username, email, password, skills } = body;
         const existingUser = await User.findOne({ $or: [{ email }, { username }] });
 
