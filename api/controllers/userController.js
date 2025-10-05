@@ -1,4 +1,4 @@
-const userService = require('../services/userService');
+const userService = require('../Services/userService')
 const func = require('../../utilities/utility-functions');
 
 module.exports = {
