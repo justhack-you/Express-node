@@ -14,7 +14,7 @@ const server = http.createServer(app);
 initilizaSocket(server); // Initialize Socket.io with the HTTP server
 
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'http://13.51.106.37'],
     credentials: true,
     exposedHeaders: ['token']
 };
