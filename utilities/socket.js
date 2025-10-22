@@ -7,13 +7,14 @@ const { default: mongoose } = require('mongoose');
 const initilizaSocket = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "http://localhost:5173",
+            origin: ["http://13.51.106.37", "http://localhost:5173"],
             methods: ["GET", "POST"],
-            credentials: true
+            credentials: true,
         },
-        allowEIO3: true,
-        transports: ['websocket', 'polling']
+        path: "/api/socket.io",
+        transports: ["websocket", "polling"],
     });
+
 
     // Socket.io connection handling
     io.on('connection', (socket) => {
